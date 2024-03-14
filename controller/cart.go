@@ -61,18 +61,102 @@ func (app *Application) AddToCart() gin.Handler {
 
 }
 
-func RemoveItem() gin.HandlerFunc {
+func (app *Application) RemoveItem() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		productQueryID := c.Query("id")
+		if productQueryID == "" {
+			log.Println("product id is required")
 
+			c.AbortWithError(http.StatusBadRequest, errors.New("product id is required"))
+			return
+		}
+		userQueryID := c.Query("user_id")
+		if userQueryID == "" {
+			log.Println("user id is required")
+
+			c.AbortWithError(http.StatusBadRequest, errors.New("user id is required"))
+			return
+		}
+
+		productID, err := primitive.ObjectIDFromHex(productQueryID)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithError(http.StatusInternalServerError, errors.New("invalid product id"))
+			return
+		}
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		err = database.RemoveCartItem(ctx, app.productCollection, app.userCollection, productID, userQueryID)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		}
+		c.IndentedJSON(200, "product removed from cart")
+	}
 }
 
 func GetItemFromCart() gin.HandlerFunc {
 
 }
 
-func BuyFromCart() gin.HandlerFunc {
+func (app *Application) BuyFromCart() gin.HandlerFunc {
 
+	return func(c *gin.Context) {
+		userQueryID := c.Query("user_id")
+		if userQueryID == "" {
+			log.Panicln("user id is required")
+			_ = c.AbortWithError(http.StatusBadRequest, errors.New("user id is required"))
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+
+		defer cancel()
+
+		err := database.BuyItemFromCart(ctx, app.userCollection, userQueryID)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		}
+
+		c.IndentedJSON(200, "product bought")
+
+	}
 }
 
-func InstantBuy() gin.HandlerFunc {
+func (app *Application) InstantBuy() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		productQueryID := c.Query("id")
+		if productQueryID == "" {
+			log.Println("product id is required")
+
+			c.AbortWithError(http.StatusBadRequest, errors.New("product id is required"))
+			return
+		}
+		userQueryID := c.Query("user_id")
+		if userQueryID == "" {
+			log.Println("user id is required")
+
+			c.AbortWithError(http.StatusBadRequest, errors.New("user id is required"))
+			return
+		}
+
+		productID, err := primitive.ObjectIDFromHex(productQueryID)
+		if err != nil {
+			log.Println(err)
+			c.AbortWithError(http.StatusInternalServerError, errors.New("invalid product id"))
+			return
+		}
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		err = database.InstantBuyer(ctx, app.productCollection, app.userCollection, productID, userQueryID)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		}
+
+		c.IndentedJSON(200, "product bought")
+	}
 
 }

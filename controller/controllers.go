@@ -10,14 +10,33 @@ import (
 	"github.com/Hi-Im-Toyo/GO_Proj/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"golang.org/x/crypto/bcrypt"
 )
 
+var userCollection *mongo.Collection = database.UserData(database.Client, "user")
+var productCollection *mongo.Collection = database.ProductData(database.Client, "product")	
+var Validate = validator.New()
+
+
 func HashPassword(password string) string {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	if err != nil {
+		log.Panic(err)
+	
+	}
+	return string(bytes)
 
 }
 
 func VerifyPassword(userPassword string, givenPassword string) (bool, string) {
-
+	bcrypt.CompareHashAndPassword([]byte(givenPassword), []byte(userPassword))
+	valid := true
+	msg := ""
+	if err != nil {
+		msg = "invalid password"
+		valid = false
+	}
+	return valid, msg
 }
 
 func Signup() gin.HandlerFunc {
@@ -129,6 +148,36 @@ func ProductViewerAdmin() gin.HandlerFunc {
 }
 
 func searchProduct() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+
+		var productlist []models.Product
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)	
+		defer cancel()
+
+		cursor, err := ProductCollection.Find(ctx, bson.D{{}})
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, "something went wrong please try again later")
+			return
+		} 
+
+		err = cursor.All(ctx, &productlist)
+		if err != nil {	
+			log.Println(err)
+			c.AbortWithError(http.StatusInternalServerError)
+			return 
+		}
+		defer cursor.Close()
+
+		if err := cursor.err(); err != nil {
+			log.Println(err)
+			c.AbortWithError(400, "invalid")
+			return
+		}
+		defer cancel()
+		c.IndentedJSON(200, productlist)
+
+	}
 
 }
 
