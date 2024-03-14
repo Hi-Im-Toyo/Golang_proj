@@ -1,6 +1,14 @@
 package controller
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+type Application struct {
+	productCollection *mongo.Collection
+	userCollection    *mongo.Collection
+}
 
 func AddAddress() gin.HandlerFunc {
 
